@@ -138,4 +138,3 @@ if st.session_state.items:
     fig = plot_layout(st.session_state.items, L, W)
     st.pyplot(fig)
     st.write("Center of Gravity:", compute_cog(st.session_state.items))
-``
