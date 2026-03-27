@@ -1,5 +1,9 @@
 import numpy as np
+import copy
 
+# ==========================
+# RECTANGLE OVERLAP CHECK
+# ==========================
 def overlap(a, b):
     ax, ay, aw, al = a
     bx, by, bw, bl = b
@@ -11,85 +15,124 @@ def overlap(a, b):
         ay - aw/2 >= by + bw/2
     )
 
-def auto_arrange(items, L, W, target_x_visual, target_y_visual):
+# ==========================
+# FIT CHECK (INSIDE SHIP)
+# ==========================
+def rect_inside_ship(x, y, w, l, L, W):
+    return (
+        x - l/2 >= -L/2 and
+        x + l/2 <=  L/2 and
+        y - w/2 >= -W/2 and
+        y + w/2 <=  W/2
+    )
+
+# ==========================
+# NO-OVERLAP CHECK
+# ==========================
+def no_collision(x, y, w, l, placed):
+    rect = (x, y, w, l)
+    for p in placed:
+        pr = (p["pos"][0], p["pos"][1], p["width"], p["length"])
+        if overlap(rect, pr):
+            return False
+    return True
+
+# ==========================
+# AUTO ARRANGE — COG DRIVEN
+# ==========================
+def auto_arrange(items, L, W, target_visual_x, target_visual_y):
 
     # convert to center coordinate system
-    target_x = target_x_visual - L/2
-    target_y = target_y_visual - W/2
+    target_x = target_visual_x - L/2
+    target_y = target_visual_y - W/2
 
     # urutkan kendaraan terberat
     items_sorted = sorted(items, key=lambda x: -x["weight"])
+
     placed = []
 
-    def fits_in_ship(x, y, w, l):
-        return (
-            x - l/2 >= -L/2 and
-            x + l/2 <=  L/2 and
-            y - w/2 >= -W/2 and
-            y + w/2 <=  W/2
-        )
-
-    def is_free(x, y, w, l):
-        rect = (x, y, w, l)
-        for p in placed:
-            rect2 = (p["pos"][0], p["pos"][1], p["width"], p["length"])
-            if overlap(rect, rect2):
-                return False
-        return True
-
-    def can_place(x, y, w, l):
-        return fits_in_ship(x, y, w, l) and is_free(x, y, w, l)
-
-    # kendaraan pertama → tepat di CoG
+    # kendaraan pertama langsung di CoG
     first = items_sorted[0]
     first["pos"] = (target_x, target_y)
     placed.append(first)
 
-    # kendaraan berikutnya → mencari posisi terdekat
+    # kendaraan berikutnya
     for v in items_sorted[1:]:
-        best_pos = None
+        best = None
         best_dist = 999999
 
-        # radius besar dulu (maks 1/4 panjang kapal)
+        # radius up to 1/3 kapal
         for r in np.linspace(0, min(L, W)/3, 80):
             for angle in np.linspace(0, 2*np.pi, 180):
                 x = target_x + r*np.cos(angle)
                 y = target_y + r*np.sin(angle)
 
-                if can_place(x, y, v["width"], v["length"]):
-                    d = abs(x-target_x) + abs(y-target_y)
+                if rect_inside_ship(x, y, v["width"], v["length"], L, W) and \
+                   no_collision(x, y, v["width"], v["length"], placed):
+
+                    d = abs(x - target_x) + abs(y - target_y)
                     if d < best_dist:
                         best_dist = d
-                        best_pos = (x, y)
+                        best = (x, y)
 
-            if best_pos:
+            if best:
                 break
 
-        if best_pos:
-            v["pos"] = best_pos
-        else:
-            # fallback → letakkan di tempat aman terdekat kiri-kanan
-            for x in np.linspace(-L/2, L/2, 200):
-                for y in np.linspace(-W/2, W/2, 80):
-                    if can_place(x, y, v["width"], v["length"]):
-                        v["pos"] = (x, y)
-                        best_pos = True
+        # fallback jika tidak ada
+        if not best:
+            # brute search grid
+            for x in np.linspace(-L/2, L/2, 150):
+                for y in np.linspace(-W/2, W/2, 60):
+                    if rect_inside_ship(x, y, v["width"], v["length"], L, W) and \
+                       no_collision(x, y, v["width"], v["length"], placed):
+                        best = (x, y)
                         break
-                if best_pos:
+                if best:
                     break
 
-            if not best_pos:
-                v["pos"] = (0, 0)  # benar‑benar fallback terakhir
+        # jika masih gagal
+        if not best:
+            best = (0, 0)
 
+        v["pos"] = best
         placed.append(v)
 
     return placed
-    
-def compute_cog(items):
-    if not items:
-        return (0, 0)
 
+# ==========================
+# COG KENDARAAN
+# ==========================
+def compute_cog(items):
     total_w = sum(v["weight"] for v in items)
+    if total_w == 0:
+        return (0, 0)
     X = sum(v["pos"][0] * v["weight"] for v in items) / total_w
     Y = sum(v["pos"][1] * v["weight"] for v in items) / total_w
     return (X, Y)
+
+# ==========================
+# GLOBAL OPTIMIZER (SWAP)
+# ==========================
+def optimize_positions(items, L, W, target_x, target_y, iterations=200):
+
+    def score(arr):
+        cx, cy = compute_cog(arr)
+        return abs(cx - target_x) + abs(cy - target_y)
+
+    best = copy.deepcopy(items)
+    best_score = score(best)
+
+    for _ in range(iterations):
+        i, j = np.random.choice(len(items), 2, replace=False)
+
+        trial = copy.deepcopy(best)
+        pos_i = trial[i]["pos"]
+        pos_j = trial[j]["pos"]
+        trial[i]["pos"], trial[j]["pos"] = pos_j, pos_i
+
+        s = score(trial)
+        if s < best_score:
+            best = trial
+            best_score = s
+
+    return best
