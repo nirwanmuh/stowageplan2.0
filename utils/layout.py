@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from utils.stowage import get_bbox, compute_cog
+from utils.stowage import compute_cog_pos, get_bbox
 
 COLOR = {
     "Golongan I": "cyan",
@@ -22,40 +22,37 @@ def plot_layout(items, Ls, Ws, cog_x, cog_y):
     ax.set_facecolor("#f0f0f0")
     fig.patch.set_facecolor("#111111")
 
-    # Ship outline
-    ax.add_patch(patches.Rectangle((0,0), Ls, Ws,
-                                   fill=False, linewidth=4, edgecolor='black'))
+    ax.add_patch(patches.Rectangle(
+        (0,0), Ls, Ws, fill=False, edgecolor="black", linewidth=4))
 
     ax.axvline(cog_x, color="blue", linestyle="--", linewidth=3)
     ax.axhline(cog_y, color="blue", linestyle="--", linewidth=3)
 
     for v in items:
         cx, cy = v["pos"]
-        bbox = get_bbox(cx, cy, v["length"], v["width"])
+        L, W = v["length"], v["width"]
 
-        xmin = bbox[0] + Ls/2
-        xmax = bbox[1] + Ls/2
-        ymin = bbox[2] + Ws/2
-        ymax = bbox[3] + Ws/2
+        xmin, xmax, ymin, ymax = get_bbox(cx, cy, L, W)
+        xmin += Ls/2
+        xmax += Ls/2
+        ymin += Ws/2
+        ymax += Ws/2
 
         c = COLOR.get(v["name"], "cyan")
 
-        ax.add_patch(
-            patches.Rectangle(
-                (xmin, ymin),
-                v["length"], v["width"],
-                fill=True, edgecolor=c, facecolor=c, alpha=0.5, linewidth=3
-            )
-        )
+        ax.add_patch(patches.Rectangle(
+            (xmin, ymin), L, W,
+            fill=True, facecolor=c, edgecolor=c, alpha=0.5, linewidth=3
+        ))
 
-        ax.text((xmin+xmax)/2, (ymin+ymax)/2,
-                v["name"], color="black", fontsize=18, weight="bold",
-                ha="center", va="center")
+        ax.text((xmin+xmax)/2, (ymin+ymax)/2, v["name"],
+                fontsize=16, ha="center", weight="bold")
 
-    # Final CoG
-    cx, cy = compute_cog(items)
+    # plot CoG
+    weights = [v["weight"] for v in items]
+    pos_arr = np.array([v["pos"] for v in items])
+    cx, cy = compute_cog_pos(pos_arr, weights)
     ax.scatter(cx + Ls/2, cy + Ws/2, color="red", s=300)
-    ax.text(cx + Ls/2, cy + Ws/2, "CoG", fontsize=22, color="red")
 
     ax.set_xlim(0, Ls)
     ax.set_ylim(0, Ws)
