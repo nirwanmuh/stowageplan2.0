@@ -1,13 +1,13 @@
 {
-  "Golongan I": { "width": 0.6, "weight": 15 },
-  "Golongan II": { "width": 0.8, "weight": 150 },
-  "Golongan III": { "width": 0.75, "weight": 200 },
-  "Golongan IVA": { "width": 1.75, "weight": 1500 },
-  "Golongan IVB": { "width": 1.80, "weight": 1800 },
-  "Golongan VA": { "width": 2.10, "weight": 5000 },
-  "Golongan VB": { "width": 2.35, "weight": 7000 },
-  "Golongan VIB": { "width": 2.35, "weight": 9000 },
-  "Golongan VII": { "width": 2.45, "weight": 16000 },
-  "Golongan VIII": { "width": 2.45, "weight": 20000 },
-  "Golongan IX": { "width": 2.45, "weight": 26000 }
+  "Golongan I": { "width": 0.6, "length": 1.8, "weight": 15 },
+  "Golongan II": { "width": 0.8, "length": 2.0, "weight": 150 },
+  "Golongan III": { "width": 0.75, "length": 2.2, "weight": 200 },
+  "Golongan IVA": { "width": 1.75, "length": 4.5, "weight": 1500 },
+  "Golongan IVB": { "width": 1.80, "length": 5.0, "weight": 1800 },
+  "Golongan VA": { "width": 2.10, "length": 7.0, "weight": 5000 },
+  "Golongan VB": { "width": 2.35, "length": 7.0, "weight": 7000 },
+  "Golongan VIB": { "width": 2.35, "length": 10.0, "weight": 9000 },
+  "Golongan VII": { "width": 2.45, "length": 12.0, "weight": 16000 },
+  "Golongan VIII": { "width": 2.45, "length": 13.0, "weight": 20000 },
+  "Golongan IX": { "width": 2.45, "length": 16.0, "weight": 26000 }
 }
