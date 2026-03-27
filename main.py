@@ -30,9 +30,14 @@ vehicle = st.selectbox("Pilih Golongan Kendaraan", list(VEHICLES.keys()))
 # ==========================
 # SESSION STATE (SAFE)
 # ==========================
-if "items" not in st.session_state or not isinstance(st.session_state.items, list):
+if "items" not in st.session_state:
     st.session_state.items = []
 
+# **PROTECTOR** — jika rusak, reset
+if not isinstance(st.session_state.items, list):
+    st.session_state.items = []
+
+# Ambil pointer
 items = st.session_state.items
 
 # ==========================
@@ -40,23 +45,26 @@ items = st.session_state.items
 # ==========================
 if st.button("Tambahkan Kendaraan"):
 
-    # Safety guard
+    # Double safety guard
     if not isinstance(st.session_state.items, list):
         st.session_state.items = []
 
+    # Append kendaraan
     v = VEHICLES[vehicle].copy()
     v["name"] = vehicle
     st.session_state.items.append(v)
 
-    # STEP 1 — initial placement near CoG
+    # Initial placement (selalu return list)
     arranged = auto_arrange(
         st.session_state.items,
         L, W,
         empty_cog_x,
         empty_cog_y
     )
+    if not isinstance(arranged, list):
+        arranged = st.session_state.items
 
-    # STEP 2 — optimization (swap positions)
+    # Optimization (selalu return list)
     target_x_center = empty_cog_x - L/2
     target_y_center = empty_cog_y - W/2
 
@@ -67,7 +75,10 @@ if st.button("Tambahkan Kendaraan"):
         target_y_center,
         iterations=300
     )
+    if not isinstance(optimized, list):
+        optimized = arranged
 
+    # Simpan hasil final
     st.session_state.items = optimized
 
 # ==========================
@@ -75,6 +86,7 @@ if st.button("Tambahkan Kendaraan"):
 # ==========================
 items = st.session_state.items
 
+# Final safety
 if not isinstance(items, list):
     items = []
     st.session_state.items = []
@@ -83,6 +95,6 @@ if len(items) > 0:
     fig = plot_layout(items, L, W, empty_cog_x, empty_cog_y)
     st.pyplot(fig, use_container_width=True)
 
-    st.write("CoG kendaraan saat ini:", compute_cog(items))
+    st.write("CoG kendaraan (center coords):", compute_cog(items))
 else:
     st.write("Belum ada kendaraan.")
