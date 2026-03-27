@@ -23,15 +23,19 @@ def plot_layout(items, Ls, Ws, cog_x, cog_y):
     ax.set_facecolor("#f0f0f0")
     fig.patch.set_facecolor("#111111")
 
+    # outline
     ax.add_patch(patches.Rectangle((0,0), Ls, Ws,
-                                   fill=False, edgecolor='black', linewidth=4))
+                                   fill=False, edgecolor="black", linewidth=4))
 
+    # CoG lines
     ax.axvline(cog_x, color="blue", linestyle="--", linewidth=3)
     ax.axhline(cog_y, color="blue", linestyle="--", linewidth=3)
 
+    # Prepare CoG computation
     positions = np.array([v["pos"] for v in items])
     weights   = np.array([v["weight"] for v in items])
 
+    # Draw vehicles
     for v in items:
         cx, cy = v["pos"]
         L, W = v["length"], v["width"]
@@ -52,12 +56,18 @@ def plot_layout(items, Ls, Ws, cog_x, cog_y):
             )
         )
 
-        ax.text((xmin+xmax)/2, (ymin+ymax)/2,
-                v["name"], fontsize=16, ha="center", weight="bold")
+        ax.text(
+            (xmin+xmax)/2,
+            (ymin+ymax)/2,
+            v["name"],
+            fontsize=16,
+            ha="center", va="center",
+            weight="bold"
+        )
 
-    # plot final CoG
-    cogx, cogy = compute_cog_pos(positions, weights)
-    ax.scatter(cogx + Ls/2, cogy + Ws/2, s=300, color="red")
+    # CoG kendaraan
+    cx2, cy2 = compute_cog_pos(positions, weights)
+    ax.scatter(cx2 + Ls/2, cy2 + Ws/2, s=300, color="red")
 
     ax.set_xlim(0, Ls)
     ax.set_ylim(0, Ws)
