@@ -22,40 +22,37 @@ def plot_layout(items, Ls, Ws, cog_x, cog_y):
     ax.set_facecolor("#f0f0f0")
     fig.patch.set_facecolor("#111111")
 
-    # outline kapal
+    # Deck
     ax.add_patch(patches.Rectangle((0,0), Ls, Ws,
                                    fill=False, edgecolor='black', linewidth=4))
 
-    # garis CoG kapal
+    # CoG lines
     ax.axvline(cog_x, color="blue", linestyle="--", linewidth=3)
     ax.axhline(cog_y, color="blue", linestyle="--", linewidth=3)
 
     for v in items:
-        # center → visual
+
         vx = v["pos"][0] + Ls/2
         vy = v["pos"][1] + Ws/2
 
-        # clamp supaya tidak kepotong
+        # clamp
         vx = max(v["length"]/2, min(Ls - v["length"]/2, vx))
         vy = max(v["width"]/2,  min(Ws - v["width"]/2,  vy))
+
+        c = COLOR.get(v["name"], "cyan")
 
         ax.add_patch(
             patches.Rectangle(
                 (vx - v["length"]/2, vy - v["width"]/2),
                 v["length"], v["width"],
-                fill=True, alpha=0.5,
-                edgecolor=COLOR.get(v["name"],"cyan"),
-                facecolor=COLOR.get(v["name"],"cyan"),
-                linewidth=3
+                fill=True, edgecolor=c, facecolor=c, alpha=0.5, linewidth=3
             )
         )
-
         ax.text(vx, vy, v["name"], fontsize=20, ha="center", weight="bold")
 
     cx, cy = compute_cog(items)
     ax.scatter(cx + Ls/2, cy + Ws/2, s=300, color="red")
-    ax.text(cx + Ls/2, cy + Ws/2, "CoG", fontsize=22, color="red",
-            weight="bold")
+    ax.text(cx + Ls/2, cy + Ws/2, "CoG", fontsize=22, weight="bold", color="red")
 
     ax.set_xlim(0, Ls)
     ax.set_ylim(0, Ws)
