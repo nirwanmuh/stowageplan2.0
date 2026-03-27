@@ -1,6 +1,6 @@
 import numpy as np
 
-# ----- OVERLAP CHECK -----
+# ----- CEK OVERLAP -----
 def overlap(a, b):
     ax, ay, aw, al = a
     bx, by, bw, bl = b
@@ -12,7 +12,7 @@ def overlap(a, b):
         ay - aw/2 >= by + bw/2
     )
 
-# ----- AUTO ARRANGE -----
+# ----- AUTO ARRANGE (tanpa grid) -----
 def auto_arrange(items, L, W):
     if not isinstance(items, list):
         return []
@@ -39,12 +39,12 @@ def auto_arrange(items, L, W):
 
             # cek overlap
             for p in placed:
-                rect2 = (p["pos"][0], p["pos"][1], p["width"], p["length"])
-                if overlap(rect, rect2):
+                r2 = (p["pos"][0], p["pos"][1], p["width"], p["length"])
+                if overlap(rect, r2):
                     ok = False
                     break
 
-            # cek batas
+            # cek batas kapal
             if not (-L/2 <= x <= L/2 and -W/2 <= y <= W/2):
                 ok = False
 
@@ -55,7 +55,7 @@ def auto_arrange(items, L, W):
                 break
 
             theta += angle_step
-            if theta >= 2 * np.pi:
+            if theta >= 2*np.pi:
                 theta = 0
                 r += radius_step
 
@@ -67,20 +67,13 @@ def auto_arrange(items, L, W):
 
     return placed
 
+# ----- CoG kendaraan saja (tanpa berat kosong) -----
+def compute_cog(items):
+    if not items:
+        return (0, 0)
 
-def compute_cog(items, empty_mass, empty_cog_x, empty_cog_y):
-    # total mass kendaraan
-    mass_items = sum(v["weight"] for v in items)
-
-    # total mass
-    M = empty_mass + mass_items
-
-    # kontribusi kendaraan
-    x_items = sum(v["pos"][0] * v["weight"] for v in items)
-    y_items = sum(v["pos"][1] * v["weight"] for v in items)
-
-    # CoG total
-    X = (empty_mass * empty_cog_x + x_items) / M
-    Y = (empty_mass * empty_cog_y + y_items) / M
+    total_w = sum(v["weight"] for v in items)
+    X = sum(v["pos"][0] * v["weight"] for v in items) / total_w
+    Y = sum(v["pos"][1] * v["weight"] for v in items) / total_w
 
     return (X, Y)
