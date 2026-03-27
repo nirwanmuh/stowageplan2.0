@@ -1,6 +1,5 @@
 import numpy as np
 
-# ----- CEK OVERLAP -----
 def overlap(a, b):
     ax, ay, aw, al = a
     bx, by, bw, bl = b
@@ -12,62 +11,61 @@ def overlap(a, b):
         ay - aw/2 >= by + bw/2
     )
 
-# ----- AUTO ARRANGE (tanpa grid) -----
-def auto_arrange(items, L, W):
-    if not isinstance(items, list):
-        return []
-
+def auto_arrange(items, L, W, target_x, target_y):
+    # Sort descending by weight
     items_sorted = sorted(items, key=lambda x: -x["weight"])
 
     placed = []
-    radius_step = min(L, W) * 0.12
-    angle_step = np.radians(25)
 
-    r = 0
-    theta = 0
+    # Helper to check placement validity
+    def can_place(x, y, w, l):
+        # check bounds
+        if not (-L/2 <= x <= L/2 and -W/2 <= y <= W/2):
+            return False
 
-    for v in items_sorted:
-        found = False
-        attempt = 0
+        rect = (x, y, w, l)
+        for p in placed:
+            rect2 = (p["pos"][0], p["pos"][1], p["width"], p["length"])
+            if overlap(rect, rect2):
+                return False
+        return True
 
-        while not found and attempt < 4000:
-            x = r * np.cos(theta)
-            y = r * np.sin(theta)
+    # First vehicle is placed exactly at CoG target
+    for idx, v in enumerate(items_sorted):
+        if idx == 0:
+            v["pos"] = (target_x, target_y)
+            placed.append(v)
+            continue
 
-            rect = (x, y, v["width"], v["length"])
-            ok = True
+        # Generate candidate locations around CoG
+        search_radius = 0.5
+        best_pos = None
+        best_dist = 999999
 
-            # cek overlap
-            for p in placed:
-                r2 = (p["pos"][0], p["pos"][1], p["width"], p["length"])
-                if overlap(rect, r2):
-                    ok = False
-                    break
+        for r in np.linspace(0, 10, 40):  # expand outward
+            for angle in np.linspace(0, 2*np.pi, 36):
+                x = target_x + r*np.cos(angle)
+                y = target_y + r*np.sin(angle)
 
-            # cek batas kapal
-            if not (-L/2 <= x <= L/2 and -W/2 <= y <= W/2):
-                ok = False
+                if can_place(x, y, v["width"], v["length"]):
+                    # choose position closest to target CoG
+                    d = np.sqrt((x-target_x)**2 + (y-target_y)**2)
+                    if d < best_dist:
+                        best_dist = d
+                        best_pos = (x, y)
 
-            if ok:
-                v["pos"] = (x, y)
+            if best_pos:
+                v["pos"] = best_pos
                 placed.append(v)
-                found = True
                 break
 
-            theta += angle_step
-            if theta >= 2*np.pi:
-                theta = 0
-                r += radius_step
-
-            attempt += 1
-
-        if not found:
+        if best_pos is None:
+            # fallback
             v["pos"] = (0, 0)
             placed.append(v)
 
     return placed
 
-# ----- CoG kendaraan saja (tanpa berat kosong) -----
 def compute_cog(items):
     if not items:
         return (0, 0)
@@ -75,5 +73,4 @@ def compute_cog(items):
     total_w = sum(v["weight"] for v in items)
     X = sum(v["pos"][0] * v["weight"] for v in items) / total_w
     Y = sum(v["pos"][1] * v["weight"] for v in items) / total_w
-
     return (X, Y)
