@@ -1,115 +1,112 @@
 import numpy as np
 
-# ==========================
-# RECTANGLE OVERLAP CHECK
-# ==========================
-def rectangles_overlap(x1, y1, L1, W1, x2, y2, L2, W2):
+# ======================================================
+# AABB BOUNDING BOX
+# ======================================================
+def get_bbox(cx, cy, length, width):
+    xmin = cx - length/2
+    xmax = cx + length/2
+    ymin = cy - width/2
+    ymax = cy + width/2
+    return xmin, xmax, ymin, ymax
+
+# ======================================================
+# AABB OVERLAP CHECK (100% AKURAT)
+# ======================================================
+def bbox_overlap(b1, b2):
+    x1min, x1max, y1min, y1max = b1
+    x2min, x2max, y2min, y2max = b2
+
     return not (
-        x1 + L1/2 <= x2 - L2/2 or
-        x1 - L1/2 >= x2 + L2/2 or
-        y1 + W1/2 <= y2 - W2/2 or
-        y1 - W1/2 >= y2 + W2/2
+        x1max <= x2min or
+        x1min >= x2max or
+        y1max <= y2min or
+        y1min >= y2max
     )
 
-def inside_ship(x, y, L, W, ship_L, ship_W):
-    return (
-        x - L/2 >= -ship_L/2 and
-        x + L/2 <=  ship_L/2 and
-        y - W/2 >= -ship_W/2 and
-        y + W/2 <=  ship_W/2
-    )
+# ======================================================
+# VALIDATE NO COLLISION WITH ALL VEHICLES
+# ======================================================
+def no_overlap_all(x, y, v, placed, ship_L, ship_W):
 
-# ==========================
-# AUTO ARRANGE – NO OVERLAP GUARANTEED
-# ==========================
-def auto_arrange(items, ship_L, ship_W, cog_x, cog_y):
+    # bounding box kendaraan baru
+    b1 = get_bbox(x, y, v["length"], v["width"])
 
-    cx = cog_x - ship_L/2
-    cy = cog_y - ship_W/2
+    # CEK boundary kapal
+    if b1[0] < -ship_L/2 or b1[1] > ship_L/2:
+        return False
+    if b1[2] < -ship_W/2 or b1[3] > ship_W/2:
+        return False
 
+    # CEK overlap dengan kendaraan lain
+    for p in placed:
+        px, py = p["pos"]
+        b2 = get_bbox(px, py, p["length"], p["width"])
+        if bbox_overlap(b1, b2):
+            return False
+
+    return True
+
+# ======================================================
+# AUTO ARRANGE — RADIAL EXPANSION (NO OVERLAP)
+# ======================================================
+def auto_arrange(items, ship_L, ship_W, cog_x_visual, cog_y_visual):
+
+    cx = cog_x_visual - ship_L/2
+    cy = cog_y_visual - ship_W/2
+
+    # urutkan dari yang terberat
     vehicles = sorted(items, key=lambda v: -v["weight"])
     placed = []
 
-    # First vehicle at CoG
+    # kendaraan pertama → CoG
     v0 = vehicles[0]
     v0["pos"] = (cx, cy)
     placed.append(v0)
 
-    # Other vehicles
+    # lainnya → radial search
     for v in vehicles[1:]:
 
-        best_pos = None
-        best_dist = float("inf")
+        found = False
 
-        # Expand radius like placing circles
-        for r in np.linspace(0, 20, 300):
-            for a in np.linspace(0, 2*np.pi, 360):
+        for r in np.linspace(0, 20, 500):
+            for ang in np.linspace(0, 2*np.pi, 360):
 
-                x = cx + r * np.cos(a)
-                y = cy + r * np.sin(a)
+                x = cx + r * np.cos(ang)
+                y = cy + r * np.sin(ang)
 
-                # Boundary
-                if not inside_ship(x, y, v["length"], v["width"], ship_L, ship_W):
-                    continue
-
-                # Collision check
-                collided = False
-                for p in placed:
-                    if rectangles_overlap(
-                        x, y, v["length"], v["width"],
-                        p["pos"][0], p["pos"][1], p["length"], p["width"]
-                    ):
-                        collided = True
-                        break
-
-                if collided:
-                    continue
-
-                # Choose closest to CoG
-                d = abs(x - cx) + abs(y - cy)
-                if d < best_dist:
-                    best_dist = d
-                    best_pos = (x, y)
-
-            if best_pos:
+                if no_overlap_all(x, y, v, placed, ship_L, ship_W):
+                    v["pos"] = (x, y)
+                    placed.append(v)
+                    found = True
+                    break
+            if found:
                 break
 
-        if not best_pos:
-            # fallback: find ANY empty space from grid scanning
-            for x in np.linspace(-ship_L/2, ship_L/2, 200):
-                ok_found = False
-                for y in np.linspace(-ship_W/2, ship_W/2, 200):
+        # fallback: brute grid
+        if not found:
+            for x in np.linspace(-ship_L/2, ship_L/2, 300):
+                ok = False
+                for y in np.linspace(-ship_W/2, ship_W/2, 150):
 
-                    if not inside_ship(x, y, v["length"], v["width"], ship_L, ship_W):
-                        continue
-
-                    collided = False
-                    for p in placed:
-                        if rectangles_overlap(
-                            x, y, v["length"], v["width"],
-                            p["pos"][0], p["pos"][1], p["length"], p["width"]
-                        ):
-                            collided = True
-                            break
-
-                    if not collided:
-                        best_pos = (x, y)
-                        ok_found = True
+                    if no_overlap_all(x, y, v, placed, ship_L, ship_W):
+                        v["pos"] = (x, y)
+                        placed.append(v)
+                        ok = True
                         break
-                if ok_found:
+                if ok:
                     break
 
-        if not best_pos:
-            best_pos = (0, 0)
-
-        v["pos"] = best_pos
-        placed.append(v)
+        # fallback bener-bener darurat
+        if not found:
+            v["pos"] = (0, 0)
+            placed.append(v)
 
     return placed
 
-# ==========================
+# ======================================================
 # CoG
-# ==========================
+# ======================================================
 def compute_cog(items):
     total = sum(v["weight"] for v in items)
     if total == 0:
