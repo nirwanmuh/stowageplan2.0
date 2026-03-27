@@ -65,7 +65,7 @@ def plot_layout(items, L, W):
         )
 
     # CoG
-    cx, cy = compute_cog(items)
+    cx, cy = compute_cog(items, empty_mass, empty_cog_x, empty_cog_y)
     cx_v = cx + L/2
     cy_v = cy + W/2
 
