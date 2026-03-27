@@ -9,6 +9,14 @@ st.set_page_config(layout="wide")
 L = st.number_input("Panjang kapal (meter)", 40.0)
 W = st.number_input("Lebar kapal (meter)", 12.0)
 
+# Input CoG kapal kosong
+empty_mass = st.number_input("Berat kapal kosong (ton)", 500.0)
+empty_cog_x = st.number_input("CoG kapal kosong (sumbu X, meter)", 0.0)
+
+# CoG Y kapal kosong otomatis = lebar kapal / 2
+empty_cog_y = W / 2
+st.write("CoG kapal kosong (sumbu Y) otomatis =", empty_cog_y)
+
 # --- Load Data Kendaraan ---
 with open("data/vehicles.json") as f:
     VEHICLES = json.load(f)
@@ -41,6 +49,13 @@ items = st.session_state["items"]
 if isinstance(items, list) and len(items) > 0:
     fig = plot_layout(items, L, W)
     st.pyplot(fig, use_container_width=True)
-    st.write("Center of Gravity:", compute_cog(items))
+    cog = compute_cog(
+        items,
+        empty_mass,
+        empty_cog_x,
+        empty_cog_y
+    )
+    st.write("Center of Gravity (X, Y):", cog)
+
 else:
     st.write("Belum ada kendaraan.")
