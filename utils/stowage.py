@@ -1,8 +1,6 @@
 import numpy as np
 
-# ----------------------------------
-# CEK OVERLAP RECTANGLE
-# ----------------------------------
+# ----- OVERLAP CHECK -----
 def overlap(a, b):
     ax, ay, aw, al = a
     bx, by, bw, bl = b
@@ -14,19 +12,16 @@ def overlap(a, b):
         ay - aw/2 >= by + bw/2
     )
 
-# ----------------------------------
-# ARRANGER UTAMA (PERBAIKAN TOTAL)
-# ----------------------------------
+# ----- AUTO ARRANGE -----
 def auto_arrange(items, L, W):
     if not isinstance(items, list):
         return []
 
-    # Sort by weight desc
     items_sorted = sorted(items, key=lambda x: -x["weight"])
 
     placed = []
-    radius_step = min(L, W) * 0.1
-    angle_step = np.radians(30)
+    radius_step = min(L, W) * 0.12
+    angle_step = np.radians(25)
 
     r = 0
     theta = 0
@@ -35,7 +30,7 @@ def auto_arrange(items, L, W):
         found = False
         attempt = 0
 
-        while not found and attempt < 5000:
+        while not found and attempt < 4000:
             x = r * np.cos(theta)
             y = r * np.sin(theta)
 
@@ -44,12 +39,12 @@ def auto_arrange(items, L, W):
 
             # cek overlap
             for p in placed:
-                r2 = (p["pos"][0], p["pos"][1], p["width"], p["length"])
-                if overlap(rect, r2):
+                rect2 = (p["pos"][0], p["pos"][1], p["width"], p["length"])
+                if overlap(rect, rect2):
                     ok = False
                     break
 
-            # cek batas kapal
+            # cek batas
             if not (-L/2 <= x <= L/2 and -W/2 <= y <= W/2):
                 ok = False
 
@@ -59,7 +54,6 @@ def auto_arrange(items, L, W):
                 found = True
                 break
 
-            # move placement point
             theta += angle_step
             if theta >= 2 * np.pi:
                 theta = 0
@@ -67,16 +61,13 @@ def auto_arrange(items, L, W):
 
             attempt += 1
 
-        # jika gagal → tetap beri posisi default
         if not found:
             v["pos"] = (0, 0)
             placed.append(v)
 
     return placed
 
-# ----------------------------------
-# HITUNG COG
-# ----------------------------------
+
 def compute_cog(items):
     if not items:
         return (0, 0)
