@@ -40,7 +40,7 @@ items = st.session_state["items"]
 
 if isinstance(items, list) and len(items) > 0:
     fig = plot_layout(items, L, W)
-    st.pyplot(fig)
+    st.pyplot(fig, use_container_width=True)
     st.write("Center of Gravity:", compute_cog(items))
 else:
     st.write("Belum ada kendaraan.")
