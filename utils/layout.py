@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from utils.stowage import compute_cog
 
-COLOR_MAP = {
+COLOR = {
     "Golongan I": "cyan",
     "Golongan II": "yellow",
     "Golongan III": "orange",
@@ -16,7 +16,7 @@ COLOR_MAP = {
     "Golongan IX": "gold"
 }
 
-def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
+def plot_layout(items, L, W, cog_x, cog_y):
 
     fig, ax = plt.subplots(figsize=(50, 14))
     ax.set_facecolor("#f0f0f0")
@@ -27,20 +27,19 @@ def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
         patches.Rectangle((0,0), L, W, fill=False, linewidth=4, edgecolor="black")
     )
 
-    # garis CoG
-    ax.axvline(empty_cog_x, color="blue", linestyle="--", linewidth=3)
-    ax.axhline(empty_cog_y, color="blue", linestyle="--", linewidth=3)
+    # garis CoG kapal
+    ax.axvline(cog_x, color="blue", linestyle="--", linewidth=3)
+    ax.axhline(cog_y, color="blue", linestyle="--", linewidth=3)
 
     for v in items:
-        # center → visual
         vx = v["pos"][0] + L/2
         vy = v["pos"][1] + W/2
 
-        # CLAMP rectangle agar tidak terpotong
+        # clamp supaya tidak kepotong
         vx = max(v["length"]/2, min(L - v["length"]/2, vx))
         vy = max(v["width"]/2,  min(W - v["width"]/2,  vy))
 
-        c = COLOR_MAP.get(v["name"], "cyan")
+        c = COLOR.get(v["name"], "cyan")
 
         ax.add_patch(
             patches.Rectangle(
@@ -52,17 +51,13 @@ def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
         )
 
         ax.text(vx, vy, v["name"],
-                fontsize=20, ha="center", color="black", weight="bold")
+                fontsize=20, ha="center", weight="bold", color="black")
 
-    # COG kendaraan
+    # CoG kendaraan
     cx, cy = compute_cog(items)
-    cx_v = cx + L/2
-    cy_v = cy + W/2
+    ax.scatter(cx + L/2, cy + W/2, s=300, color="red")
+    ax.text(cx + L/2, cy + W/2, "CoG", fontsize=22, weight="bold", color="red")
 
-    ax.scatter(cx_v, cy_v, s=300, color="red")
-    ax.text(cx_v, cy_v, "CoG", fontsize=22, color="red", weight="bold")
-
-    # axis
     ax.set_xlim(0, L)
     ax.set_ylim(0, W)
     ax.set_aspect("equal")
