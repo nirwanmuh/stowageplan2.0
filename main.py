@@ -4,10 +4,10 @@ from utils.stowage import GA_arrange
 from utils.layout import plot_layout
 
 st.set_page_config(layout="wide")
-st.title("Ferry Layout Generator — Genetic Algorithm")
+st.title("Ferry Stowage Plan — GA Mode (Stable No-Overlap)")
 
-L = st.number_input("Panjang kapal (m)", 40.0)
-W = st.number_input("Lebar kapal (m)", 12.0)
+L = st.number_input("Panjang kapal", 40.0)
+W = st.number_input("Lebar kapal", 12.0)
 
 cog_x = st.number_input("CoG Kapal X", 10.0)
 cog_y = W/2
@@ -18,7 +18,7 @@ with open("data/vehicles.json") as f:
 if "vehicles" not in st.session_state:
     st.session_state["vehicles"] = []
 
-vehicle = st.selectbox("Pilih kendaraan", list(VEHICLES.keys()))
+vehicle = st.selectbox("Pilih Kendaraan", list(VEHICLES.keys()))
 
 if st.button("Tambah"):
     v = VEHICLES[vehicle].copy()
