@@ -32,7 +32,14 @@ if st.button("Tambahkan Kendaraan"):
     target_x = empty_cog_x - L/2
     target_y = empty_cog_y - W/2
 
-    opt = optimize_positions(arr, L, W, target_x, target_y, iterations=300)
+    # ======================================
+    # FIX: OPTIMIZER HANYA JIKA VEHICLE >= 2
+    # ======================================
+    if len(arr) >= 2:
+        opt = optimize_positions(arr, L, W, target_x, target_y, iterations=300)
+    else:
+        opt = arr
+    # ======================================
 
     st.session_state["items_list"] = opt
 
