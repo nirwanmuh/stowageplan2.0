@@ -13,7 +13,7 @@ def rectangles_overlap(x1, y1, L1, W1, x2, y2, L2, W2):
     )
 
 # ==========================
-# CHECK ALL COLLISIONS
+# CHECK GLOBAL COLLISION
 # ==========================
 def global_no_overlap(items):
     n = len(items)
@@ -40,7 +40,7 @@ def inside(x, y, L, W, Ls, Ws):
     )
 
 # ==========================
-# AUTO ARRANGE (COG DRIVEN)
+# AUTO ARRANGE (COG-DRIVEN)
 # ==========================
 def auto_arrange(items, Ls, Ws, cog_x_visual, cog_y_visual):
 
@@ -50,28 +50,25 @@ def auto_arrange(items, Ls, Ws, cog_x_visual, cog_y_visual):
     sorted_items = sorted(items, key=lambda v: -v["weight"])
     placed = []
 
-    # kendaraan pertama di CoG
+    # kendaraan pertama ke CoG
     first = sorted_items[0]
     first["pos"] = (target_x, target_y)
     placed.append(first)
 
     # kendaraan lain
     for v in sorted_items[1:]:
-
         best = None
-        best_dist = 1e18
+        best_dist = float("inf")
 
         for r in np.linspace(0, min(Ls, Ws)/2, 200):
-            for ang in np.linspace(0, np.pi*2, 200):
+            for ang in np.linspace(0, 2*np.pi, 200):
 
                 x = target_x + r*np.cos(ang)
                 y = target_y + r*np.sin(ang)
 
-                # inside check
                 if not inside(x, y, v["length"], v["width"], Ls, Ws):
                     continue
 
-                # collision check
                 ok = True
                 for p in placed:
                     if rectangles_overlap(
@@ -83,7 +80,6 @@ def auto_arrange(items, Ls, Ws, cog_x_visual, cog_y_visual):
                 if not ok:
                     continue
 
-                # choose nearest to CoG
                 d = abs(x - target_x) + abs(y - target_y)
                 if d < best_dist:
                     best_dist = d
@@ -92,30 +88,26 @@ def auto_arrange(items, Ls, Ws, cog_x_visual, cog_y_visual):
             if best:
                 break
 
+        # fallback brute search
         if not best:
-            # emergency fallback — place near center line
             for x in np.linspace(-Ls/2, Ls/2, 200):
                 for y in np.linspace(-Ws/2, Ws/2, 200):
-
-                    if not inside(x, y, v["length"], v["width"], Ls, Ws):
-                        continue
-
-                    ok = True
-                    for p in placed:
-                        if rectangles_overlap(
-                            x, y, v["length"], v["width"],
-                            p["pos"][0], p["pos"][1], p["length"], p["width"]
-                        ):
-                            ok = False
+                    if inside(x, y, v["length"], v["width"], Ls, Ws):
+                        ok = True
+                        for p in placed:
+                            if rectangles_overlap(
+                                x, y, v["length"], v["width"],
+                                p["pos"][0], p["pos"][1], p["length"], p["width"]
+                            ):
+                                ok = False
+                                break
+                        if ok:
+                            best = (x, y)
                             break
-                    if ok:
-                        best = (x, y)
-                        break
-                if best:
-                    break
+                if best: break
 
         if not best:
-            best = (0,0)
+            best = (0, 0)
 
         v["pos"] = best
         placed.append(v)
@@ -123,7 +115,7 @@ def auto_arrange(items, Ls, Ws, cog_x_visual, cog_y_visual):
     return placed
 
 # ==========================
-# COG PERHITUNGAN
+# COG KENDARAAN
 # ==========================
 def compute_cog(items):
     total = sum(v["weight"] for v in items)
@@ -134,7 +126,7 @@ def compute_cog(items):
     return (X,Y)
 
 # ==========================
-# OPTIMIZER (NO OVERLAP GUARANTEED)
+# OPTIMIZER — GLOBAL NON-OVERLAP
 # ==========================
 def optimize_positions(items, Ls, Ws, tx, ty, iterations=200):
 
@@ -151,11 +143,9 @@ def optimize_positions(items, Ls, Ws, tx, ty, iterations=200):
         i, j = random.sample(range(len(items)), 2)
 
         trial = copy.deepcopy(best)
-
-        # swap
         trial[i]["pos"], trial[j]["pos"] = trial[j]["pos"], trial[i]["pos"]
 
-        # validate all
+        # MUST validate global overlap
         if not global_no_overlap(trial):
             continue
 
@@ -165,4 +155,3 @@ def optimize_positions(items, Ls, Ws, tx, ty, iterations=200):
             best_score = s
 
     return best
-``
