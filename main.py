@@ -1,42 +1,76 @@
 import streamlit as st
 import json
-from utils.stowage import auto_arrange, compute_cog
+from utils.stowage import auto_arrange, compute_cog, optimize_positions
 from utils.layout import plot_layout
 
 st.set_page_config(layout="wide")
-st.title("Stowage Plan Ferry (Free Placement)")
+st.title("Stowage Plan Ferry (COG Driven + No Overlap + Optimized)")
 
+# ==========================
+# INPUT DECK SIZE
+# ==========================
 L = st.number_input("Panjang kapal (meter)", 40.0)
 W = st.number_input("Lebar kapal (meter)", 12.0)
 
-empty_cog_x = st.number_input("CoG kapal kosong (X)", 0.0)
+# ==========================
+# INPUT COG KAPAL (EMPTY SHIP)
+# ==========================
+empty_cog_x = st.number_input("CoG kapal (X)", 10.0)
 empty_cog_y = W / 2
-st.write("CoG kapal kosong Y =", empty_cog_y)
+st.write("CoG kapal (Y) = Lebar kapal / 2 =", empty_cog_y)
 
+# ==========================
+# LOAD VEHICLE DATABASE
+# ==========================
 with open("data/vehicles.json") as f:
     VEHICLES = json.load(f)
 
 vehicle = st.selectbox("Pilih Golongan Kendaraan", list(VEHICLES.keys()))
 
+# ==========================
+# SESSION STATE FOR VEHICLES
+# ==========================
 if "items" not in st.session_state:
-    st.session_state["items"] = []
+    st.session_state.items = []
 
+# ==========================
+# ADD VEHICLE
+# ==========================
 if st.button("Tambahkan Kendaraan"):
     v = VEHICLES[vehicle].copy()
     v["name"] = vehicle
-    st.session_state["items"].append(v)
+    st.session_state.items.append(v)
 
-    st.session_state["items"] = auto_arrange(
-        st.session_state["items"],
-        L,
-        W,
+    # STEP 1: INITIAL ARRANGEMENT
+    arranged = auto_arrange(
+        st.session_state.items,
+        L, W,
         empty_cog_x,
         empty_cog_y
     )
 
-items = st.session_state["items"]
+    # STEP 2: GLOBAL OPTIMIZATION (SWAP)
+    # convert CoG visual → center coordinates
+    target_x_center = empty_cog_x - L/2
+    target_y_center = empty_cog_y - W/2
+
+    optimized = optimize_positions(
+        arranged,
+        L, W,
+        target_x_center,
+        target_y_center,
+        iterations=300
+    )
+
+    st.session_state.items = optimized
+
+# ==========================
+# DRAW RESULTS
+# ==========================
+items = st.session_state.items
 if len(items) > 0:
     fig = plot_layout(items, L, W, empty_cog_x, empty_cog_y)
     st.pyplot(fig, use_container_width=True)
+    st.write("CoG kendaraan saat ini:", compute_cog(items))
 else:
     st.write("Belum ada kendaraan.")
