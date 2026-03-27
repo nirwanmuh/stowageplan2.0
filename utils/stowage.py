@@ -1,24 +1,24 @@
 import numpy as np
 import copy
 
-# ====================================================
-# RECTANGLE OVERLAP CHECK
-# ====================================================
-def overlap(a, b):
-    ax, ay, aw, al = a
-    bx, by, bw, bl = b
+# ======================================================
+# RECTANGLE OVERLAP CHECK (BENAR - length & width tepat)
+# ======================================================
+def overlap(r1, r2):
+    x1, y1, l1, w1 = r1
+    x2, y2, l2, w2 = r2
 
     return not (
-        ax + al/2 <= bx - bl/2 or
-        ax - al/2 >= bx + bl/2 or
-        ay + aw/2 <= by - bw/2 or
-        ay - aw/2 >= by + bw/2
+        x1 + l1/2 <= x2 - l2/2 or
+        x1 - l1/2 >= x2 + l2/2 or
+        y1 + w1/2 <= y2 - w2/2 or
+        y1 - w1/2 >= y2 + w2/2
     )
 
-# ====================================================
-# FIT INSIDE SHIP
-# ====================================================
-def rect_inside_ship(x, y, w, l, L, W):
+# ======================================================
+# CHECK INSIDE SHIP BOUNDARIES
+# ======================================================
+def inside(x, y, l, w, L, W):
     return (
         x - l/2 >= -L/2 and
         x + l/2 <=  L/2 and
@@ -26,50 +26,51 @@ def rect_inside_ship(x, y, w, l, L, W):
         y + w/2 <=  W/2
     )
 
-# ====================================================
-# NO COLLISION
-# ====================================================
+# ======================================================
+# CHECK NO COLLISION FOR ALL PLACED RECTANGLES
+# ======================================================
 def no_collision(x, y, w, l, placed):
-    rect = (x, y, w, l)
+    rect = (x, y, l, w)
     for p in placed:
         px, py = p["pos"]
-        rect2 = (px, py, p["width"], p["length"])
-        if overlap(rect, rect2):
+        r2 = (px, py, p["length"], p["width"])
+        if overlap(rect, r2):
             return False
     return True
 
-# ====================================================
-# AUTO ARRANGE (COG-DRIVEN)
-# ====================================================
-def auto_arrange(items, L, W, target_visual_x, target_visual_y):
+# ======================================================
+# AUTO ARRANGE (COG-driven)
+# ======================================================
+def auto_arrange(items, L, W, cog_visual_x, cog_visual_y):
 
     try:
-        target_x = target_visual_x - L/2
-        target_y = target_visual_y - W/2
+        target_x = cog_visual_x - L/2
+        target_y = cog_visual_y - W/2
 
         items_sorted = sorted(items, key=lambda x: -x["weight"])
         placed = []
 
-        # kendaraan pertama → CoG kapal
+        # first vehicle → center of CoG ship
         first = items_sorted[0]
         first["pos"] = (target_x, target_y)
         placed.append(first)
 
-        # kendaraan berikutnya
+        # next vehicles
         for v in items_sorted[1:]:
 
             best = None
             best_dist = 999999
 
+            # search around COG
             for r in np.linspace(0, min(L, W)/3, 80):
-                for angle in np.linspace(0, 2*np.pi, 180):
-                    x = target_x + r*np.cos(angle)
-                    y = target_y + r*np.sin(angle)
+                for ang in np.linspace(0, 2*np.pi, 180):
+                    x = target_x + r*np.cos(ang)
+                    y = target_y + r*np.sin(ang)
 
-                    if rect_inside_ship(x, y, v["width"], v["length"], L, W) \
-                       and no_collision(x, y, v["width"], v["length"], placed):
+                    if inside(x, y, v["length"], v["width"], L, W) and \
+                       no_collision(x, y, v["width"], v["length"], placed):
 
-                        d = abs(x - target_x) + abs(y - target_y)
+                        d = abs(x-target_x) + abs(y-target_y)
                         if d < best_dist:
                             best_dist = d
                             best = (x, y)
@@ -77,12 +78,12 @@ def auto_arrange(items, L, W, target_visual_x, target_visual_y):
                 if best:
                     break
 
-            # fallback brute search
+            # fallback brute
             if not best:
-                for x in np.linspace(-L/2, L/2, 150):
-                    for y in np.linspace(-W/2, W/2, 60):
-                        if rect_inside_ship(x, y, v["width"], v["length"], L, W) \
-                           and no_collision(x, y, v["width"], v["length"], placed):
+                for x in np.linspace(-L/2, L/2, 160):
+                    for y in np.linspace(-W/2, W/2, 80):
+                        if inside(x, y, v["length"], v["width"], L, W) and \
+                           no_collision(x, y, v["width"], v["length"], placed):
                             best = (x, y)
                             break
                     if best:
@@ -99,29 +100,21 @@ def auto_arrange(items, L, W, target_visual_x, target_visual_y):
     except:
         return items
 
-# ====================================================
-# COG KENDARAAN
-# ====================================================
+# ======================================================
+# COMPUTE COG
+# ======================================================
 def compute_cog(items):
-    total_w = sum(v["weight"] for v in items)
-    if total_w == 0:
+    total = sum(v["weight"] for v in items)
+    if total == 0:
         return (0, 0)
-    X = sum(v["pos"][0] * v["weight"] for v in items) / total_w
-    Y = sum(v["pos"][1] * v["weight"] for v in items) / total_w
+    X = sum(v["pos"][0] * v["weight"] for v in items) / total
+    Y = sum(v["pos"][1] * v["weight"] for v in items) / total
     return (X, Y)
 
-# ====================================================
-# OPTIMIZER (SAFE SWAP)
-# ====================================================
-def optimize_positions(items, L, W, target_x, target_y, iterations=300):
-
-    def inside(x, y, w, l):
-        return (
-            x - l/2 >= -L/2 and
-            x + l/2 <=  L/2 and
-            y - w/2 >= -W/2 and
-            y + w/2 <=  W/2
-        )
+# ======================================================
+# OPTIMIZER - SWAP WITH NO-OVERLAP ENFORCEMENT
+# ======================================================
+def optimize_positions(items, L, W, target_x, target_y, iterations=200):
 
     def score(arr):
         cx, cy = compute_cog(arr)
@@ -139,17 +132,35 @@ def optimize_positions(items, L, W, target_x, target_y, iterations=300):
             pos_i = trial[i]["pos"]
             pos_j = trial[j]["pos"]
 
-            # SWAP
             trial[i]["pos"], trial[j]["pos"] = pos_j, pos_i
 
-            # validate boundaries
+            # check boundaries
             if not inside(trial[i]["pos"][0], trial[i]["pos"][1],
-                          trial[i]["width"], trial[i]["length"]):
-                continue
-            if not inside(trial[j]["pos"][0], trial[j]["pos"][1],
-                          trial[j]["width"], trial[j]["length"]):
+                          trial[i]["length"], trial[i]["width"], L, W):
                 continue
 
+            if not inside(trial[j]["pos"][0], trial[j]["pos"][1],
+                          trial[j]["length"], trial[j]["width"], L, W):
+                continue
+
+            # global overlap check
+            ok = True
+            for a in range(len(trial)):
+                for b in range(a+1, len(trial)):
+                    ra = trial[a]
+                    rb = trial[b]
+                    r1 = (ra["pos"][0], ra["pos"][1], ra["length"], ra["width"])
+                    r2 = (rb["pos"][0], rb["pos"][1], rb["length"], rb["width"])
+                    if overlap(r1, r2):
+                        ok = False
+                        break
+                if not ok:
+                    break
+
+            if not ok:
+                continue
+
+            # accept if CoG improved
             s = score(trial)
             if s < best_score:
                 best = trial
@@ -159,3 +170,4 @@ def optimize_positions(items, L, W, target_x, target_y, iterations=300):
 
     except:
         return items
+``
