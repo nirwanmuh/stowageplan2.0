@@ -10,19 +10,17 @@ def overlap(a, b):
         ay + aw/2 <= by - bw/2 or
         ay - aw/2 >= by + bw/2
     )
+def auto_arrange(items, L, W, target_x_visual, target_y_visual):
+    # convert CoG visual → ke koordinat pusat
+    target_x = target_x_visual - L/2
+    target_y = target_y_visual - W/2
 
-def auto_arrange(items, L, W, target_x, target_y):
-    # Sort descending by weight
     items_sorted = sorted(items, key=lambda x: -x["weight"])
-
     placed = []
 
-    # Helper to check placement validity
     def can_place(x, y, w, l):
-        # check bounds
         if not (-L/2 <= x <= L/2 and -W/2 <= y <= W/2):
             return False
-
         rect = (x, y, w, l)
         for p in placed:
             rect2 = (p["pos"][0], p["pos"][1], p["width"], p["length"])
@@ -30,42 +28,41 @@ def auto_arrange(items, L, W, target_x, target_y):
                 return False
         return True
 
-    # First vehicle is placed exactly at CoG target
+    # Kendaraan pertama langsung di CoG
     for idx, v in enumerate(items_sorted):
         if idx == 0:
             v["pos"] = (target_x, target_y)
             placed.append(v)
             continue
 
-        # Generate candidate locations around CoG
-        search_radius = 0.5
-        best_pos = None
+        best = None
         best_dist = 999999
 
-        for r in np.linspace(0, 10, 40):  # expand outward
-            for angle in np.linspace(0, 2*np.pi, 36):
+        # radius kecil, sangat ketat
+        for r in np.linspace(0, 3, 40):   # hanya 0–3 meter dari CoG
+            for angle in np.linspace(0, 2*np.pi, 72):
                 x = target_x + r*np.cos(angle)
                 y = target_y + r*np.sin(angle)
 
                 if can_place(x, y, v["width"], v["length"]):
-                    # choose position closest to target CoG
-                    d = np.sqrt((x-target_x)**2 + (y-target_y)**2)
+                    d = abs(x - target_x) + abs(y - target_y)
                     if d < best_dist:
                         best_dist = d
-                        best_pos = (x, y)
+                        best = (x, y)
 
-            if best_pos:
-                v["pos"] = best_pos
-                placed.append(v)
+            if best:
                 break
 
-        if best_pos is None:
-            # fallback
-            v["pos"] = (0, 0)
-            placed.append(v)
+        if best:
+            v["pos"] = best
+        else:
+            # fallback – tetap dekat CoG
+            v["pos"] = (target_x, target_y)
+
+        placed.append(v)
 
     return placed
-
+    
 def compute_cog(items):
     if not items:
         return (0, 0)
