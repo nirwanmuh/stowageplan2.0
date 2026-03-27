@@ -1,42 +1,71 @@
-import streamlit as st
-import json
-from utils.stowage import auto_arrange, compute_cog
-from utils.layout import plot_layout
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from utils.stowage import compute_cog
 
-st.set_page_config(layout="wide")
-st.title("Stowage Plan Ferry (Free Placement)")
+COLOR_MAP = {
+    "Golongan I": "cyan",
+    "Golongan II": "yellow",
+    "Golongan III": "orange",
+    "Golongan IVA": "green",
+    "Golongan IVB": "lime",
+    "Golongan VA": "purple",
+    "Golongan VB": "violet",
+    "Golongan VIB": "magenta",
+    "Golongan VII": "red",
+    "Golongan VIII": "deeppink",
+    "Golongan IX": "gold"
+}
 
-L = st.number_input("Panjang kapal (meter)", 40.0)
-W = st.number_input("Lebar kapal (meter)", 12.0)
+def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
+    fig, ax = plt.subplots(figsize=(50, 14))
 
-empty_cog_x = st.number_input("CoG kapal kosong (X)", 0.0)
-empty_cog_y = W / 2
-st.write("CoG kapal kosong Y =", empty_cog_y)
+    ax.set_facecolor("#f0f0f0")
+    fig.patch.set_facecolor("#111111")
 
-with open("data/vehicles.json") as f:
-    VEHICLES = json.load(f)
-
-vehicle = st.selectbox("Pilih Golongan Kendaraan", list(VEHICLES.keys()))
-
-if "items" not in st.session_state:
-    st.session_state["items"] = []
-
-if st.button("Tambahkan Kendaraan"):
-    v = VEHICLES[vehicle].copy()
-    v["name"] = vehicle
-    st.session_state["items"].append(v)
-
-    st.session_state["items"] = auto_arrange(
-        st.session_state["items"],
-        L,
-        W,
-        empty_cog_x,
-        empty_cog_y
+    # outline kapal
+    ax.add_patch(
+        patches.Rectangle((0,0), L, W, fill=False, linewidth=4, edgecolor="black")
     )
 
-items = st.session_state["items"]
-if len(items) > 0:
-    fig = plot_layout(items, L, W, empty_cog_x, empty_cog_y)
-    st.pyplot(fig, use_container_width=True)
-else:
-    st.write("Belum ada kendaraan.")
+    # garis CoG kapal
+    ax.axvline(empty_cog_x, color="blue", linestyle="--", linewidth=3)
+    ax.axhline(empty_cog_y, color="blue", linestyle="--", linewidth=3)
+
+    # kendaraan
+    for v in items:
+        x = v["pos"][0] + L/2
+        y = v["pos"][1] + W/2
+        color = COLOR_MAP.get(v["name"], "cyan")
+
+        ax.add_patch(
+            patches.Rectangle(
+                (x - v["length"]/2, y - v["width"]/2),
+                v["length"], v["width"],
+                fill=True, alpha=0.5,
+                edgecolor=color, facecolor=color, linewidth=3
+            )
+        )
+        ax.text(x, y, v["name"], fontsize=20, ha="center", color="black", weight="bold")
+
+    # CoG kendaraan
+    cx, cy = compute_cog(items)
+    cx_v = cx + L/2
+    cy_v = cy + W/2
+
+    ax.scatter(cx_v, cy_v, color="red", s=300)
+    ax.text(cx_v, cy_v, "CoG", fontsize=22, color="red", weight="bold")
+
+    # axis
+    ax.set_xlim(0, L)
+    ax.set_ylim(0, W)
+    ax.set_aspect("equal")
+
+    ax.set_xlabel("Sumbu X (meter)", fontsize=20, color="white")
+    ax.set_ylabel("Sumbu Y (meter)", fontsize=20, color="white")
+    ax.tick_params(axis="x", colors="white", labelsize=18)
+    ax.tick_params(axis="y", colors="white", labelsize=18)
+
+    for spine in ax.spines.values():
+        spine.set_color("white")
+
+    return fig
