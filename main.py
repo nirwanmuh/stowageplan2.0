@@ -68,6 +68,12 @@ if st.button("Tambahkan Kendaraan"):
 # DRAW RESULTS
 # ==========================
 items = st.session_state.items
+
+# --- SAFETY CHECK PENTING ---
+if not isinstance(items, list):
+    items = []
+    st.session_state.items = []
+
 if len(items) > 0:
     fig = plot_layout(items, L, W, empty_cog_x, empty_cog_y)
     st.pyplot(fig, use_container_width=True)
