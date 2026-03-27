@@ -4,7 +4,7 @@ from utils.stowage import auto_arrange, compute_cog, optimize_positions
 from utils.layout import plot_layout
 
 st.set_page_config(layout="wide")
-st.title("Stowage Plan Ferry (Optimized CoG Placement)")
+st.title("Stowage Plan Ferry (COG Optimized + No Overlap + No Cut-Off)")
 
 # ==========================
 # INPUT DECK SIZE
@@ -28,12 +28,12 @@ with open("data/vehicles.json") as f:
 vehicle = st.selectbox("Pilih Golongan Kendaraan", list(VEHICLES.keys()))
 
 # ==========================
-# SAFE SESSION STATE (PASTI LIST)
+# SAFE SESSION STATE
 # ==========================
 if "items_list" not in st.session_state:
     st.session_state["items_list"] = []
 
-# hard protection
+# hard safety
 if not isinstance(st.session_state["items_list"], list):
     st.session_state["items_list"] = []
 
@@ -44,7 +44,7 @@ items = st.session_state["items_list"]
 # ==========================
 if st.button("Tambahkan Kendaraan"):
 
-    # safety reset if corrupted
+    # safety before append
     if not isinstance(st.session_state["items_list"], list):
         st.session_state["items_list"] = []
 
