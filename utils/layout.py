@@ -20,7 +20,11 @@ COLOR_MAP = {
 def plot_layout(items, L, W):
     fig, ax = plt.subplots(figsize=(50, 14))
 
-    # Outline kapal (dengan sistem koordinat 0,0 pojok kiri bawah)
+    # Background terang agar axis terlihat
+    ax.set_facecolor("#f0f0f0")
+    fig.patch.set_facecolor("#111111")  # tetap dark background luar
+
+    # Outline kapal
     ax.add_patch(
         patches.Rectangle(
             (0, 0),
@@ -28,16 +32,14 @@ def plot_layout(items, L, W):
             W,
             fill=False,
             linewidth=4,
-            edgecolor="white"
+            edgecolor="black"
         )
     )
 
-    # Gambar kendaraan
+    # Kendaraan
     for v in items:
-        # offset agar posisi jadi sistem pojok kiri bawah
         x = v["pos"][0] + L/2
         y = v["pos"][1] + W/2
-
         color = COLOR_MAP.get(v["name"], "cyan")
 
         ax.add_patch(
@@ -46,7 +48,7 @@ def plot_layout(items, L, W):
                 v["length"],
                 v["width"],
                 fill=True,
-                alpha=0.4,
+                alpha=0.5,
                 edgecolor=color,
                 facecolor=color,
                 linewidth=3
@@ -54,30 +56,38 @@ def plot_layout(items, L, W):
         )
 
         ax.text(
-            x,
-            y,
+            x, y,
             v["name"],
             ha="center",
-            fontsize=18,
-            color="white",
+            fontsize=20,
+            color="black",
             weight="bold"
         )
 
-    # Hitung CoG
+    # CoG
     cx, cy = compute_cog(items)
-    cx_visual = cx + L/2
-    cy_visual = cy + W/2
+    cx_v = cx + L/2
+    cy_v = cy + W/2
 
-    ax.scatter(cx_visual, cy_visual, color="red", s=300)
-    ax.text(cx_visual, cy_visual, "CoG", color="red", fontsize=20, weight="bold")
+    ax.scatter(cx_v, cy_v, color="red", s=300)
+    ax.text(cx_v, cy_v, "CoG",
+            fontsize=22, color="red", weight="bold")
 
-    # Atur tampilan
+    # Axis style
     ax.set_xlim(0, L)
     ax.set_ylim(0, W)
     ax.set_aspect("equal")
 
-    # Warna background
-    ax.set_facecolor("#111111")
-    fig.patch.set_facecolor("#111111")
+    # Axis labels besar & putih
+    ax.set_xlabel("X (meter)", fontsize=20, color="white", labelpad=15)
+    ax.set_ylabel("Y (meter)", fontsize=20, color="white", labelpad=15)
+
+    # Angka axis putih & besar
+    ax.tick_params(axis="x", colors="white", labelsize=18)
+    ax.tick_params(axis="y", colors="white", labelsize=18)
+
+    # Agar axis label tidak ketutup background gelap
+    for spine in ax.spines.values():
+        spine.set_color("white")
 
     return fig
