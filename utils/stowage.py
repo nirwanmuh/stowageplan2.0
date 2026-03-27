@@ -42,58 +42,62 @@ def no_collision(x, y, w, l, placed):
 # ====================================================
 def auto_arrange(items, L, W, target_visual_x, target_visual_y):
 
-    target_x = target_visual_x - L/2
-    target_y = target_visual_y - W/2
+    try:
+        target_x = target_visual_x - L/2
+        target_y = target_visual_y - W/2
 
-    items_sorted = sorted(items, key=lambda x: -x["weight"])
-    placed = []
+        items_sorted = sorted(items, key=lambda x: -x["weight"])
+        placed = []
 
-    # Kendaraan pertama → CoG kapal
-    first = items_sorted[0]
-    first["pos"] = (target_x, target_y)
-    placed.append(first)
+        # Kendaraan pertama → CoG kapal
+        first = items_sorted[0]
+        first["pos"] = (target_x, target_y)
+        placed.append(first)
 
-    # Kendaraan berikutnya
-    for v in items_sorted[1:]:
+        # Kendaraan berikutnya
+        for v in items_sorted[1:]:
 
-        best = None
-        best_dist = 999999
+            best = None
+            best_dist = 999999
 
-        for r in np.linspace(0, min(L, W)/3, 80):
-            for angle in np.linspace(0, 2*np.pi, 180):
+            for r in np.linspace(0, min(L, W)/3, 80):
+                for angle in np.linspace(0, 2*np.pi, 180):
 
-                x = target_x + r*np.cos(angle)
-                y = target_y + r*np.sin(angle)
+                    x = target_x + r*np.cos(angle)
+                    y = target_y + r*np.sin(angle)
 
-                if rect_inside_ship(x, y, v["width"], v["length"], L, W) and \
-                   no_collision(x, y, v["width"], v["length"], placed):
-
-                    d = abs(x-target_x) + abs(y-target_y)
-                    if d < best_dist:
-                        best_dist = d
-                        best = (x, y)
-
-            if best:
-                break
-
-        # fallback
-        if not best:
-            for x in np.linspace(-L/2, L/2, 150):
-                for y in np.linspace(-W/2, W/2, 60):
                     if rect_inside_ship(x, y, v["width"], v["length"], L, W) and \
                        no_collision(x, y, v["width"], v["length"], placed):
-                        best = (x, y)
-                        break
+
+                        d = abs(x-target_x) + abs(y-target_y)
+                        if d < best_dist:
+                            best_dist = d
+                            best = (x, y)
+
                 if best:
                     break
 
-        if not best:
-            best = (0, 0)
+            # fallback
+            if not best:
+                for x in np.linspace(-L/2, L/2, 150):
+                    for y in np.linspace(-W/2, W/2, 60):
+                        if rect_inside_ship(x, y, v["width"], v["length"], L, W) and \
+                           no_collision(x, y, v["width"], v["length"], placed):
+                            best = (x, y)
+                            break
+                    if best:
+                        break
 
-        v["pos"] = best
-        placed.append(v)
+            if not best:
+                best = (0, 0)
 
-    return placed
+            v["pos"] = best
+            placed.append(v)
+
+        return placed
+
+    except:
+        return items   # ALWAYS return list
 
 # ====================================================
 # COG KENDARAAN
@@ -115,19 +119,23 @@ def optimize_positions(items, L, W, target_x, target_y, iterations=300):
         cx, cy = compute_cog(arr)
         return abs(cx - target_x) + abs(cy - target_y)
 
-    best = copy.deepcopy(items)
-    best_score = score(best)
+    try:
+        best = copy.deepcopy(items)
+        best_score = score(best)
 
-    for _ in range(iterations):
+        for _ in range(iterations):
 
-        i, j = np.random.choice(len(items), 2, replace=False)
-        trial = copy.deepcopy(best)
+            i, j = np.random.choice(len(items), 2, replace=False)
+            trial = copy.deepcopy(best)
 
-        trial[i]["pos"], trial[j]["pos"] = trial[j]["pos"], trial[i]["pos"]
+            trial[i]["pos"], trial[j]["pos"] = trial[j]["pos"], trial[i]["pos"]
 
-        s = score(trial)
-        if s < best_score:
-            best = trial
-            best_score = s
+            s = score(trial)
+            if s < best_score:
+                best = trial
+                best_score = s
 
-    return best
+        return best
+
+    except:
+        return items  # ALWAYS return list
