@@ -4,7 +4,7 @@ from utils.stowage import auto_arrange, compute_cog, optimize_positions
 from utils.layout import plot_layout
 
 st.set_page_config(layout="wide")
-st.title("Stowage Plan Ferry (COG Optimized + No Overlap + No Cut-Off)")
+st.title("Stowage Plan Ferry (Final - No Overlap + No Cut-Off)")
 
 # ==========================
 # INPUT DECK SIZE
@@ -20,7 +20,7 @@ empty_cog_y = W / 2
 st.write("CoG kapal (Y) =", empty_cog_y)
 
 # ==========================
-# LOAD VEHICLE DATABASE
+# LOAD VEHICLES
 # ==========================
 with open("data/vehicles.json") as f:
     VEHICLES = json.load(f)
@@ -28,25 +28,20 @@ with open("data/vehicles.json") as f:
 vehicle = st.selectbox("Pilih Golongan Kendaraan", list(VEHICLES.keys()))
 
 # ==========================
-# SAFE SESSION STATE
+# SESSION STATE SAFE
 # ==========================
 if "items_list" not in st.session_state:
     st.session_state["items_list"] = []
 
-# hard safety
 if not isinstance(st.session_state["items_list"], list):
     st.session_state["items_list"] = []
 
 items = st.session_state["items_list"]
 
 # ==========================
-# ADD VEHICLE
+# ADD VEHICLE BTN
 # ==========================
 if st.button("Tambahkan Kendaraan"):
-
-    # safety before append
-    if not isinstance(st.session_state["items_list"], list):
-        st.session_state["items_list"] = []
 
     v = VEHICLES[vehicle].copy()
     v["name"] = vehicle
@@ -70,7 +65,7 @@ if st.button("Tambahkan Kendaraan"):
         L, W,
         target_x_center,
         target_y_center,
-        iterations=300
+        iterations=200
     )
 
     if not isinstance(optimized, list):
@@ -79,7 +74,7 @@ if st.button("Tambahkan Kendaraan"):
     st.session_state["items_list"] = optimized
 
 # ==========================
-# DRAW RESULTS
+# DRAW RESULT
 # ==========================
 items = st.session_state["items_list"]
 
