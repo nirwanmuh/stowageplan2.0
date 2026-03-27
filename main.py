@@ -28,43 +28,40 @@ with open("data/vehicles.json") as f:
 vehicle = st.selectbox("Pilih Golongan Kendaraan", list(VEHICLES.keys()))
 
 # ==========================
-# SESSION STATE (SAFE)
+# SAFE SESSION STATE (PASTI LIST)
 # ==========================
-if "items" not in st.session_state:
-    st.session_state.items = []
+if "items_list" not in st.session_state:
+    st.session_state["items_list"] = []
 
-# **PROTECTOR** — jika rusak, reset
-if not isinstance(st.session_state.items, list):
-    st.session_state.items = []
+# hard protection
+if not isinstance(st.session_state["items_list"], list):
+    st.session_state["items_list"] = []
 
-# Ambil pointer
-items = st.session_state.items
+items = st.session_state["items_list"]
 
 # ==========================
 # ADD VEHICLE
 # ==========================
 if st.button("Tambahkan Kendaraan"):
 
-    # Double safety guard
-    if not isinstance(st.session_state.items, list):
-        st.session_state.items = []
+    # safety reset if corrupted
+    if not isinstance(st.session_state["items_list"], list):
+        st.session_state["items_list"] = []
 
-    # Append kendaraan
     v = VEHICLES[vehicle].copy()
     v["name"] = vehicle
-    st.session_state.items.append(v)
+    st.session_state["items_list"].append(v)
 
-    # Initial placement (selalu return list)
     arranged = auto_arrange(
-        st.session_state.items,
+        st.session_state["items_list"],
         L, W,
         empty_cog_x,
         empty_cog_y
     )
-    if not isinstance(arranged, list):
-        arranged = st.session_state.items
 
-    # Optimization (selalu return list)
+    if not isinstance(arranged, list):
+        arranged = st.session_state["items_list"]
+
     target_x_center = empty_cog_x - L/2
     target_y_center = empty_cog_y - W/2
 
@@ -75,26 +72,25 @@ if st.button("Tambahkan Kendaraan"):
         target_y_center,
         iterations=300
     )
+
     if not isinstance(optimized, list):
         optimized = arranged
 
-    # Simpan hasil final
-    st.session_state.items = optimized
+    st.session_state["items_list"] = optimized
 
 # ==========================
 # DRAW RESULTS
 # ==========================
-items = st.session_state.items
+items = st.session_state["items_list"]
 
-# Final safety
 if not isinstance(items, list):
     items = []
-    st.session_state.items = []
+    st.session_state["items_list"] = []
 
 if len(items) > 0:
     fig = plot_layout(items, L, W, empty_cog_x, empty_cog_y)
     st.pyplot(fig, use_container_width=True)
 
-    st.write("CoG kendaraan (center coords):", compute_cog(items))
+    st.write("CoG kendaraan:", compute_cog(items))
 else:
     st.write("Belum ada kendaraan.")
