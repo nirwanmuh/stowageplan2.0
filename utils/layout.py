@@ -17,6 +17,7 @@ COLOR_MAP = {
 }
 
 def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
+
     fig, ax = plt.subplots(figsize=(50, 14))
 
     ax.set_facecolor("#f0f0f0")
@@ -45,15 +46,23 @@ def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
                 edgecolor=color, facecolor=color, linewidth=3
             )
         )
-        ax.text(x, y, v["name"], fontsize=20, ha="center", color="black", weight="bold")
+
+        ax.text(
+            x, y,
+            v["name"],
+            ha="center",
+            fontsize=20,
+            color="black",
+            weight="bold"
+        )
 
     # CoG kendaraan
     cx, cy = compute_cog(items)
     cx_v = cx + L/2
     cy_v = cy + W/2
 
-    ax.scatter(cx_v, cy_v, color="red", s=300)
-    ax.text(cx_v, cy_v, "CoG", fontsize=22, color="red", weight="bold")
+    ax.scatter(cx_v, cy_v, s=300, color="red")
+    ax.text(cx_v, cy_v, " CoG Kendaraan", fontsize=22, color="red", weight="bold")
 
     # axis
     ax.set_xlim(0, L)
@@ -62,6 +71,7 @@ def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
 
     ax.set_xlabel("Sumbu X (meter)", fontsize=20, color="white")
     ax.set_ylabel("Sumbu Y (meter)", fontsize=20, color="white")
+
     ax.tick_params(axis="x", colors="white", labelsize=18)
     ax.tick_params(axis="y", colors="white", labelsize=18)
 
