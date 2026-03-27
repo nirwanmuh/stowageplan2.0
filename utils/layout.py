@@ -23,48 +23,41 @@ def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
     ax.set_facecolor("#f0f0f0")
     fig.patch.set_facecolor("#111111")
 
-    # outline kapal
+    # Outline kapal
     ax.add_patch(
         patches.Rectangle((0,0), L, W, fill=False, linewidth=4, edgecolor="black")
     )
 
-    # garis CoG kapal
+    # Garis CoG kapal
     ax.axvline(empty_cog_x, color="blue", linestyle="--", linewidth=3)
     ax.axhline(empty_cog_y, color="blue", linestyle="--", linewidth=3)
 
-    # kendaraan
+    # Kendaraan
     for v in items:
         x = v["pos"][0] + L/2
         y = v["pos"][1] + W/2
-        color = COLOR_MAP.get(v["name"], "cyan")
+        c = COLOR_MAP.get(v["name"], "cyan")
 
         ax.add_patch(
             patches.Rectangle(
                 (x - v["length"]/2, y - v["width"]/2),
                 v["length"], v["width"],
                 fill=True, alpha=0.5,
-                edgecolor=color, facecolor=color, linewidth=3
+                edgecolor=c, facecolor=c, linewidth=3
             )
         )
 
         ax.text(
-            x, y,
-            v["name"],
-            ha="center",
-            fontsize=20,
-            color="black",
-            weight="bold"
+            x, y, v["name"],
+            fontsize=20, ha="center", weight="bold", color="black"
         )
 
     # CoG kendaraan
     cx, cy = compute_cog(items)
-    cx_v = cx + L/2
-    cy_v = cy + W/2
+    ax.scatter(cx + L/2, cy + W/2, s=300, color="red")
+    ax.text(cx + L/2, cy + W/2, "CoG Kendaraan", fontsize=22, color="red", weight="bold")
 
-    ax.scatter(cx_v, cy_v, s=300, color="red")
-    ax.text(cx_v, cy_v, " CoG Kendaraan", fontsize=22, color="red", weight="bold")
-
-    # axis
+    # Axis
     ax.set_xlim(0, L)
     ax.set_ylim(0, W)
     ax.set_aspect("equal")
