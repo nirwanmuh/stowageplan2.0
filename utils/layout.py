@@ -23,16 +23,13 @@ def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
     ax.set_facecolor("#f0f0f0")
     fig.patch.set_facecolor("#111111")
 
-    # Outline kapal
     ax.add_patch(
         patches.Rectangle((0,0), L, W, fill=False, linewidth=4, edgecolor="black")
     )
 
-    # Garis CoG kapal
     ax.axvline(empty_cog_x, color="blue", linestyle="--", linewidth=3)
     ax.axhline(empty_cog_y, color="blue", linestyle="--", linewidth=3)
 
-    # Kendaraan
     for v in items:
         x = v["pos"][0] + L/2
         y = v["pos"][1] + W/2
@@ -47,23 +44,15 @@ def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
             )
         )
 
-        ax.text(
-            x, y, v["name"],
-            fontsize=20, ha="center", weight="bold", color="black"
-        )
+        ax.text(x, y, v["name"], fontsize=20, ha="center", color="black", weight="bold")
 
-    # CoG kendaraan
     cx, cy = compute_cog(items)
     ax.scatter(cx + L/2, cy + W/2, s=300, color="red")
-    ax.text(cx + L/2, cy + W/2, "CoG Kendaraan", fontsize=22, color="red", weight="bold")
+    ax.text(cx + L/2, cy + W/2, "CoG", fontsize=22, weight="bold", color="red")
 
-    # Axis
     ax.set_xlim(0, L)
     ax.set_ylim(0, W)
     ax.set_aspect("equal")
-
-    ax.set_xlabel("Sumbu X (meter)", fontsize=20, color="white")
-    ax.set_ylabel("Sumbu Y (meter)", fontsize=20, color="white")
 
     ax.tick_params(axis="x", colors="white", labelsize=18)
     ax.tick_params(axis="y", colors="white", labelsize=18)
