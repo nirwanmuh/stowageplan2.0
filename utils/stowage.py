@@ -10,17 +10,26 @@ def overlap(a, b):
         ay + aw/2 <= by - bw/2 or
         ay - aw/2 >= by + bw/2
     )
+
 def auto_arrange(items, L, W, target_x_visual, target_y_visual):
-    # convert CoG visual → ke koordinat pusat
+
+    # convert to center coordinate system
     target_x = target_x_visual - L/2
     target_y = target_y_visual - W/2
 
+    # urutkan kendaraan terberat
     items_sorted = sorted(items, key=lambda x: -x["weight"])
     placed = []
 
-    def can_place(x, y, w, l):
-        if not (-L/2 <= x <= L/2 and -W/2 <= y <= W/2):
-            return False
+    def fits_in_ship(x, y, w, l):
+        return (
+            x - l/2 >= -L/2 and
+            x + l/2 <=  L/2 and
+            y - w/2 >= -W/2 and
+            y + w/2 <=  W/2
+        )
+
+    def is_free(x, y, w, l):
         rect = (x, y, w, l)
         for p in placed:
             rect2 = (p["pos"][0], p["pos"][1], p["width"], p["length"])
@@ -28,36 +37,49 @@ def auto_arrange(items, L, W, target_x_visual, target_y_visual):
                 return False
         return True
 
-    # Kendaraan pertama langsung di CoG
-    for idx, v in enumerate(items_sorted):
-        if idx == 0:
-            v["pos"] = (target_x, target_y)
-            placed.append(v)
-            continue
+    def can_place(x, y, w, l):
+        return fits_in_ship(x, y, w, l) and is_free(x, y, w, l)
 
-        best = None
+    # kendaraan pertama → tepat di CoG
+    first = items_sorted[0]
+    first["pos"] = (target_x, target_y)
+    placed.append(first)
+
+    # kendaraan berikutnya → mencari posisi terdekat
+    for v in items_sorted[1:]:
+        best_pos = None
         best_dist = 999999
 
-        # radius kecil, sangat ketat
-        for r in np.linspace(0, 3, 40):   # hanya 0–3 meter dari CoG
-            for angle in np.linspace(0, 2*np.pi, 72):
+        # radius besar dulu (maks 1/4 panjang kapal)
+        for r in np.linspace(0, min(L, W)/3, 80):
+            for angle in np.linspace(0, 2*np.pi, 180):
                 x = target_x + r*np.cos(angle)
                 y = target_y + r*np.sin(angle)
 
                 if can_place(x, y, v["width"], v["length"]):
-                    d = abs(x - target_x) + abs(y - target_y)
+                    d = abs(x-target_x) + abs(y-target_y)
                     if d < best_dist:
                         best_dist = d
-                        best = (x, y)
+                        best_pos = (x, y)
 
-            if best:
+            if best_pos:
                 break
 
-        if best:
-            v["pos"] = best
+        if best_pos:
+            v["pos"] = best_pos
         else:
-            # fallback – tetap dekat CoG
-            v["pos"] = (target_x, target_y)
+            # fallback → letakkan di tempat aman terdekat kiri-kanan
+            for x in np.linspace(-L/2, L/2, 200):
+                for y in np.linspace(-W/2, W/2, 80):
+                    if can_place(x, y, v["width"], v["length"]):
+                        v["pos"] = (x, y)
+                        best_pos = True
+                        break
+                if best_pos:
+                    break
+
+            if not best_pos:
+                v["pos"] = (0, 0)  # benar‑benar fallback terakhir
 
         placed.append(v)
 
