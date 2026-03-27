@@ -4,7 +4,7 @@ from utils.stowage import auto_arrange, compute_cog
 from utils.layout import plot_layout
 
 st.title("Stowage Plan Ferry (Free Placement)")
-
+st.set_page_config(layout="wide")
 # --- Input Kapal ---
 L = st.number_input("Panjang kapal (meter)", 40.0)
 W = st.number_input("Lebar kapal (meter)", 12.0)
