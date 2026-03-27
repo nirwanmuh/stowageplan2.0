@@ -1,10 +1,10 @@
 import streamlit as st
 import json
-from utils.stowage import auto_arrange, compute_cog
+from utils.stowage import auto_arrange
 from utils.layout import plot_layout
 
 st.set_page_config(layout="wide")
-st.title("Stowage Plan Ferry – NO OVERLAP GUARANTEED")
+st.title("Stowage Plan Ferry – NO OVERLAP, AABB-BASED")
 
 L = st.number_input("Panjang kapal (m)", 40.0)
 W = st.number_input("Lebar kapal (m)", 12.0)
@@ -15,29 +15,25 @@ empty_cog_y = W/2
 with open("data/vehicles.json") as f:
     VEHICLES = json.load(f)
 
-if "items_list" not in st.session_state:
-    st.session_state["items_list"] = []
+if "items" not in st.session_state:
+    st.session_state["items"] = []
 
 vehicle = st.selectbox("Pilih kendaraan", list(VEHICLES.keys()))
 
-if st.button("Tambahkan Kendaraan"):
+if st.button("Tambahkan"):
     v = VEHICLES[vehicle].copy()
     v["name"] = vehicle
-    st.session_state["items_list"].append(v)
+    st.session_state["items"].append(v)
 
     arranged = auto_arrange(
-        st.session_state["items_list"],
-        L, W,
-        empty_cog_x,
-        empty_cog_y
+        st.session_state["items"], L, W,
+        empty_cog_x, empty_cog_y
     )
 
-    st.session_state["items_list"] = arranged
+    st.session_state["items"] = arranged
 
-items = st.session_state["items_list"]
+items = st.session_state["items"]
 
-if len(items)>0:
+if len(items) > 0:
     fig = plot_layout(items, L, W, empty_cog_x, empty_cog_y)
     st.pyplot(fig, use_container_width=True)
-else:
-    st.write("Belum ada kendaraan.")
