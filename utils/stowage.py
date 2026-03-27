@@ -68,11 +68,19 @@ def auto_arrange(items, L, W):
     return placed
 
 
-def compute_cog(items):
-    if not items:
-        return (0, 0)
+def compute_cog(items, empty_mass, empty_cog_x, empty_cog_y):
+    # total mass kendaraan
+    mass_items = sum(v["weight"] for v in items)
 
-    total_w = sum(v["weight"] for v in items)
-    X = sum(v["pos"][0] * v["weight"] for v in items) / total_w
-    Y = sum(v["pos"][1] * v["weight"] for v in items) / total_w
+    # total mass
+    M = empty_mass + mass_items
+
+    # kontribusi kendaraan
+    x_items = sum(v["pos"][0] * v["weight"] for v in items)
+    y_items = sum(v["pos"][1] * v["weight"] for v in items)
+
+    # CoG total
+    X = (empty_mass * empty_cog_x + x_items) / M
+    Y = (empty_mass * empty_cog_y + y_items) / M
+
     return (X, Y)
