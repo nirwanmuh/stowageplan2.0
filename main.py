@@ -4,7 +4,7 @@ from utils.stowage import auto_arrange, compute_cog, optimize_positions
 from utils.layout import plot_layout
 
 st.set_page_config(layout="wide")
-st.title("Stowage Plan Ferry (COG Driven + No Overlap + Optimized)")
+st.title("Stowage Plan Ferry (Optimized CoG Placement)")
 
 # ==========================
 # INPUT DECK SIZE
@@ -13,11 +13,11 @@ L = st.number_input("Panjang kapal (meter)", 40.0)
 W = st.number_input("Lebar kapal (meter)", 12.0)
 
 # ==========================
-# INPUT COG KAPAL (EMPTY SHIP)
+# INPUT COG KAPAL
 # ==========================
 empty_cog_x = st.number_input("CoG kapal (X)", 10.0)
 empty_cog_y = W / 2
-st.write("CoG kapal (Y) = Lebar kapal / 2 =", empty_cog_y)
+st.write("CoG kapal (Y) =", empty_cog_y)
 
 # ==========================
 # LOAD VEHICLE DATABASE
@@ -28,20 +28,27 @@ with open("data/vehicles.json") as f:
 vehicle = st.selectbox("Pilih Golongan Kendaraan", list(VEHICLES.keys()))
 
 # ==========================
-# SESSION STATE FOR VEHICLES
+# SESSION STATE (SAFE)
 # ==========================
-if "items" not in st.session_state:
+if "items" not in st.session_state or not isinstance(st.session_state.items, list):
     st.session_state.items = []
+
+items = st.session_state.items
 
 # ==========================
 # ADD VEHICLE
 # ==========================
 if st.button("Tambahkan Kendaraan"):
+
+    # Safety guard
+    if not isinstance(st.session_state.items, list):
+        st.session_state.items = []
+
     v = VEHICLES[vehicle].copy()
     v["name"] = vehicle
     st.session_state.items.append(v)
 
-    # STEP 1: INITIAL ARRANGEMENT
+    # STEP 1 — initial placement near CoG
     arranged = auto_arrange(
         st.session_state.items,
         L, W,
@@ -49,8 +56,7 @@ if st.button("Tambahkan Kendaraan"):
         empty_cog_y
     )
 
-    # STEP 2: GLOBAL OPTIMIZATION (SWAP)
-    # convert CoG visual → center coordinates
+    # STEP 2 — optimization (swap positions)
     target_x_center = empty_cog_x - L/2
     target_y_center = empty_cog_y - W/2
 
@@ -69,7 +75,6 @@ if st.button("Tambahkan Kendaraan"):
 # ==========================
 items = st.session_state.items
 
-# --- SAFETY CHECK PENTING ---
 if not isinstance(items, list):
     items = []
     st.session_state.items = []
@@ -77,6 +82,7 @@ if not isinstance(items, list):
 if len(items) > 0:
     fig = plot_layout(items, L, W, empty_cog_x, empty_cog_y)
     st.pyplot(fig, use_container_width=True)
+
     st.write("CoG kendaraan saat ini:", compute_cog(items))
 else:
     st.write("Belum ada kendaraan.")
