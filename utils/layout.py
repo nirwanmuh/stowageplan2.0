@@ -3,12 +3,22 @@ import matplotlib.patches as patches
 from utils.stowage import compute_cog
 
 def plot_layout(items, L, W):
-    fig, ax = plt.subplots(figsize=(10, 5))
+    # FIGURE SUPER BESAR
+    fig, ax = plt.subplots(figsize=(32, 12))  # full screen feel
 
-    # Kapal
-    ax.add_patch(patches.Rectangle((-L/2, -W/2), L, W,
-                                   fill=False, linewidth=2))
+    # Outline kapal
+    ax.add_patch(
+        patches.Rectangle(
+            (-L/2, -W/2),
+            L,
+            W,
+            fill=False,
+            linewidth=3,
+            edgecolor="black"
+        )
+    )
 
+    # Kendaraan
     for v in items:
         x, y = v["pos"]
         ax.add_patch(
@@ -17,14 +27,16 @@ def plot_layout(items, L, W):
                 v["length"],
                 v["width"],
                 fill=False,
-                edgecolor="blue"
+                edgecolor="blue",
+                linewidth=2
             )
         )
-        ax.text(x, y, v.get("name", "kendaraan"), ha="center", fontsize=7)
+        ax.text(x, y, v.get("name", "kendaraan"), ha="center", fontsize=12)
 
+    # Center of Gravity
     cx, cy = compute_cog(items)
-    ax.scatter(cx, cy, color="red")
-    ax.text(cx, cy, "CoG", color="red")
+    ax.scatter(cx, cy, color="red", s=120)
+    ax.text(cx, cy, "CoG", fontsize=14, color="red")
 
     ax.set_xlim(-L/2, L/2)
     ax.set_ylim(-W/2, W/2)
