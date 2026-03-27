@@ -5,42 +5,42 @@ from utils.layout import plot_layout
 
 st.title("Stowage Plan Ferry (Free Placement)")
 
-# Input kapal
+# --- Input Kapal ---
 L = st.number_input("Panjang kapal (meter)", 40.0)
 W = st.number_input("Lebar kapal (meter)", 12.0)
 
-# Load data kendaraan
+# --- Load Data Kendaraan ---
 with open("data/vehicles.json") as f:
     VEHICLES = json.load(f)
 
-# Select kendaraan
 vehicle = st.selectbox("Pilih Golongan Kendaraan", list(VEHICLES.keys()))
 
-# Pastikan session_state.items SELALU list
-if "items" not in st.session_state or not isinstance(st.session_state.items, list):
-    st.session_state.items = []
+# SESSION STATE FIX
+if "items" not in st.session_state:
+    st.session_state["items"] = []
 
-# Tombol tambah
+# Jika ada korupsi state
+if not isinstance(st.session_state["items"], list):
+    st.session_state["items"] = []
+
+# --- Tambah Kendaraan ---
 if st.button("Tambahkan Kendaraan"):
-    new_vehicle = VEHICLES[vehicle].copy()
-    new_vehicle["name"] = vehicle
+    new_v = VEHICLES[vehicle].copy()
+    new_v["name"] = vehicle
 
-    # Append
-    st.session_state.items.append(new_vehicle)
+    st.session_state["items"].append(new_v)
 
-    # Safe arrange
-    arranged = auto_arrange(st.session_state.items, L, W)
+    arranged = auto_arrange(st.session_state["items"], L, W)
+    if isinstance(arranged, list):
+        st.session_state["items"] = arranged
+    else:
+        st.session_state["items"] = st.session_state["items"]
 
-    # Jika arrange gagal → fallback
-    if not isinstance(arranged, list):
-        arranged = st.session_state.items
+items = st.session_state["items"]
 
-    st.session_state.items = arranged
-
-# Tampilkan hasil
-if st.session_state.items:
-    fig = plot_layout(st.session_state.items, L, W)
+if isinstance(items, list) and len(items) > 0:
+    fig = plot_layout(items, L, W)
     st.pyplot(fig)
-    st.write("Center of Gravity:", compute_cog(st.session_state.items))
+    st.write("Center of Gravity:", compute_cog(items))
 else:
     st.write("Belum ada kendaraan.")
