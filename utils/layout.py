@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from utils.stowage import compute_cog
 
-# Warna tiap golongan
 COLOR_MAP = {
     "Golongan I": "cyan",
     "Golongan II": "yellow",
@@ -17,26 +16,19 @@ COLOR_MAP = {
     "Golongan IX": "gold"
 }
 
-def plot_layout(items, L, W):
+def plot_layout(items, L, W, empty_cog_x, empty_cog_y):
     fig, ax = plt.subplots(figsize=(50, 14))
 
-    # Background terang agar axis terlihat
     ax.set_facecolor("#f0f0f0")
-    fig.patch.set_facecolor("#111111")  # tetap dark background luar
+    fig.patch.set_facecolor("#111111")
 
-    # Outline kapal
     ax.add_patch(
         patches.Rectangle(
-            (0, 0),
-            L,
-            W,
-            fill=False,
-            linewidth=4,
-            edgecolor="black"
+            (0, 0), L, W,
+            fill=False, linewidth=4, edgecolor="black"
         )
     )
 
-    # Kendaraan
     for v in items:
         x = v["pos"][0] + L/2
         y = v["pos"][1] + W/2
@@ -45,12 +37,9 @@ def plot_layout(items, L, W):
         ax.add_patch(
             patches.Rectangle(
                 (x - v["length"]/2, y - v["width"]/2),
-                v["length"],
-                v["width"],
-                fill=True,
-                alpha=0.5,
-                edgecolor=color,
-                facecolor=color,
+                v["length"], v["width"],
+                fill=True, alpha=0.5,
+                edgecolor=color, facecolor=color,
                 linewidth=3
             )
         )
@@ -64,29 +53,30 @@ def plot_layout(items, L, W):
             weight="bold"
         )
 
-    # CoG
-    cx, cy = compute_cog(items, empty_mass, empty_cog_x, empty_cog_y)
+    # COG kendaraan
+    cx, cy = compute_cog(items)
     cx_v = cx + L/2
     cy_v = cy + W/2
 
-    ax.scatter(cx_v, cy_v, color="red", s=300)
-    ax.text(cx_v, cy_v, "CoG",
-            fontsize=22, color="red", weight="bold")
+    ax.scatter(cx_v, cy_v, s=300, color="red")
+    ax.text(cx_v, cy_v, "CoG", fontsize=22, color="red", weight="bold")
 
-    # Axis style
+    # COG kosong
+    ax.scatter(empty_cog_x, empty_cog_y, s=240, color="blue")
+    ax.text(empty_cog_x, empty_cog_y, "CoG Kosong",
+            fontsize=20, color="blue", weight="bold")
+
+    # Axis
     ax.set_xlim(0, L)
     ax.set_ylim(0, W)
     ax.set_aspect("equal")
 
-    # Axis labels besar & putih
-    ax.set_xlabel("X (meter)", fontsize=20, color="white", labelpad=15)
-    ax.set_ylabel("Y (meter)", fontsize=20, color="white", labelpad=15)
+    ax.set_xlabel("Sumbu X (meter)", fontsize=20, color="white")
+    ax.set_ylabel("Sumbu Y (meter)", fontsize=20, color="white")
 
-    # Angka axis putih & besar
     ax.tick_params(axis="x", colors="white", labelsize=18)
     ax.tick_params(axis="y", colors="white", labelsize=18)
 
-    # Agar axis label tidak ketutup background gelap
     for spine in ax.spines.values():
         spine.set_color("white")
 
