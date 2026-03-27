@@ -27,18 +27,19 @@ def rect_inside_ship(x, y, w, l, L, W):
     )
 
 # ====================================================
-# NO COLLISION CHECK
+# NO COLLISION
 # ====================================================
 def no_collision(x, y, w, l, placed):
     rect = (x, y, w, l)
     for p in placed:
-        pr = (p["pos"][0], p["pos"][1], p["width"], p["length"])
-        if overlap(rect, pr):
+        px, py = p["pos"]
+        rect2 = (px, py, p["width"], p["length"])
+        if overlap(rect, rect2):
             return False
     return True
 
 # ====================================================
-# AUTO ARRANGE (COG DRIVEN)
+# AUTO ARRANGE (COG-DRIVEN)
 # ====================================================
 def auto_arrange(items, L, W, target_visual_x, target_visual_y):
 
@@ -49,12 +50,12 @@ def auto_arrange(items, L, W, target_visual_x, target_visual_y):
         items_sorted = sorted(items, key=lambda x: -x["weight"])
         placed = []
 
-        # Kendaraan pertama → CoG kapal
+        # kendaraan pertama → CoG kapal
         first = items_sorted[0]
         first["pos"] = (target_x, target_y)
         placed.append(first)
 
-        # Kendaraan berikutnya
+        # kendaraan berikutnya
         for v in items_sorted[1:]:
 
             best = None
@@ -62,14 +63,13 @@ def auto_arrange(items, L, W, target_visual_x, target_visual_y):
 
             for r in np.linspace(0, min(L, W)/3, 80):
                 for angle in np.linspace(0, 2*np.pi, 180):
-
                     x = target_x + r*np.cos(angle)
                     y = target_y + r*np.sin(angle)
 
-                    if rect_inside_ship(x, y, v["width"], v["length"], L, W) and \
-                       no_collision(x, y, v["width"], v["length"], placed):
+                    if rect_inside_ship(x, y, v["width"], v["length"], L, W) \
+                       and no_collision(x, y, v["width"], v["length"], placed):
 
-                        d = abs(x-target_x) + abs(y-target_y)
+                        d = abs(x - target_x) + abs(y - target_y)
                         if d < best_dist:
                             best_dist = d
                             best = (x, y)
@@ -77,12 +77,12 @@ def auto_arrange(items, L, W, target_visual_x, target_visual_y):
                 if best:
                     break
 
-            # fallback
+            # fallback brute search
             if not best:
                 for x in np.linspace(-L/2, L/2, 150):
                     for y in np.linspace(-W/2, W/2, 60):
-                        if rect_inside_ship(x, y, v["width"], v["length"], L, W) and \
-                           no_collision(x, y, v["width"], v["length"], placed):
+                        if rect_inside_ship(x, y, v["width"], v["length"], L, W) \
+                           and no_collision(x, y, v["width"], v["length"], placed):
                             best = (x, y)
                             break
                     if best:
@@ -97,7 +97,7 @@ def auto_arrange(items, L, W, target_visual_x, target_visual_y):
         return placed
 
     except:
-        return items   # ALWAYS return list
+        return items
 
 # ====================================================
 # COG KENDARAAN
@@ -111,9 +111,17 @@ def compute_cog(items):
     return (X, Y)
 
 # ====================================================
-# OPTIMIZATION (SWAP POSITIONS)
+# OPTIMIZER (SAFE SWAP)
 # ====================================================
 def optimize_positions(items, L, W, target_x, target_y, iterations=300):
+
+    def inside(x, y, w, l):
+        return (
+            x - l/2 >= -L/2 and
+            x + l/2 <=  L/2 and
+            y - w/2 >= -W/2 and
+            y + w/2 <=  W/2
+        )
 
     def score(arr):
         cx, cy = compute_cog(arr)
@@ -128,7 +136,19 @@ def optimize_positions(items, L, W, target_x, target_y, iterations=300):
             i, j = np.random.choice(len(items), 2, replace=False)
             trial = copy.deepcopy(best)
 
-            trial[i]["pos"], trial[j]["pos"] = trial[j]["pos"], trial[i]["pos"]
+            pos_i = trial[i]["pos"]
+            pos_j = trial[j]["pos"]
+
+            # SWAP
+            trial[i]["pos"], trial[j]["pos"] = pos_j, pos_i
+
+            # validate boundaries
+            if not inside(trial[i]["pos"][0], trial[i]["pos"][1],
+                          trial[i]["width"], trial[i]["length"]):
+                continue
+            if not inside(trial[j]["pos"][0], trial[j]["pos"][1],
+                          trial[j]["width"], trial[j]["length"]):
+                continue
 
             s = score(trial)
             if s < best_score:
@@ -138,4 +158,4 @@ def optimize_positions(items, L, W, target_x, target_y, iterations=300):
         return best
 
     except:
-        return items  # ALWAYS return list
+        return items
